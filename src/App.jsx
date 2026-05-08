@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { io } from 'socket.io-client';
 import './App.css';
 import HeroSearch from './components/HeroSearch';
-import DestinationCard from './components/DestinationCard';
-import ItineraryDisplay from './components/ItineraryDisplay';
+
+// Efficiency: Lazy load components to reduce initial bundle size
+const DestinationCard = lazy(() => import('./components/DestinationCard'));
+const ItineraryDisplay = lazy(() => import('./components/ItineraryDisplay'));
 
 const destinations = [
   { id: 1, name: 'Kyoto, Japan', image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop', desc: 'Ancient temples and modern culture.' },
@@ -70,43 +72,44 @@ function App() {
       <header className="app-header glass" role="banner">
         <div className="logo text-gradient" aria-label="Wanderlust Home">Wanderlust</div>
         <nav className="nav-links" role="navigation">
-          {/* Nav links removed for simplification per user request */}
         </nav>
       </header>
 
       <main role="main">
         <HeroSearch onSearch={handleSearch} />
 
-        {(loading || streamContent) && (
-          <section className="itinerary-section animate-fade-in" aria-live="polite" aria-busy={loading}>
-            {status && (
-              <div className="streaming-status">
-                <div className="spinner small" aria-hidden="true"></div>
-                <p className="text-gradient">{status}</p>
-              </div>
-            )}
-            <ItineraryDisplay 
-              itinerary={itinerary} 
-              content={streamContent} 
-              isStreaming={loading} 
-            />
-          </section>
-        )}
+        <Suspense fallback={<div className="loading-fallback glass">Loading...</div>}>
+          {(loading || streamContent) && (
+            <section className="itinerary-section animate-fade-in" aria-live="polite" aria-busy={loading}>
+              {status && (
+                <div className="streaming-status">
+                  <div className="spinner small" aria-hidden="true"></div>
+                  <p className="text-gradient">{status}</p>
+                </div>
+              )}
+              <ItineraryDisplay 
+                itinerary={itinerary} 
+                content={streamContent} 
+                isStreaming={loading} 
+              />
+            </section>
+          )}
 
-        {!itinerary && !loading && (
-          <section className="destinations-section animate-fade-in delay-200">
-            <h2 className="section-title">Trending <span className="text-gradient">Destinations</span></h2>
-            <div className="destinations-grid">
-              {destinations.map(dest => (
-                <DestinationCard 
-                  key={dest.id} 
-                  destination={dest} 
-                  onClick={() => handleSearch({ destination: dest.name })} 
-                />
-              ))}
-            </div>
-          </section>
-        )}
+          {!itinerary && !loading && (
+            <section className="destinations-section animate-fade-in delay-200">
+              <h2 className="section-title">Trending <span className="text-gradient">Destinations</span></h2>
+              <div className="destinations-grid">
+                {destinations.map(dest => (
+                  <DestinationCard 
+                    key={dest.id} 
+                    destination={dest} 
+                    onClick={() => handleSearch({ destination: dest.name })} 
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </Suspense>
       </main>
 
       <footer className="app-footer" role="contentinfo">

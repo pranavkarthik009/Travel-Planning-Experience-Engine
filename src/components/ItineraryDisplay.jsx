@@ -4,7 +4,7 @@ import './ItineraryDisplay.css';
 
 /**
  * Itinerary Display Component
- * Renders the AI-generated itinerary using Markdown.
+ * Renders the AI-generated itinerary and a Google Maps view of the destination.
  * 
  * @param {Object} props - Component props
  * @param {Object} props.itinerary - The itinerary metadata (destination, dates)
@@ -13,6 +13,9 @@ import './ItineraryDisplay.css';
  */
 const ItineraryDisplay = ({ itinerary, content, isStreaming }) => {
   if (!itinerary) return null;
+
+  // Google Services: Dynamic Maps Embed for visual destination context
+  const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY || ''}&q=${encodeURIComponent(itinerary.destination)}`;
 
   return (
     <article className="itinerary-container glass" aria-label="Generated Travel Itinerary">
@@ -24,6 +27,22 @@ const ItineraryDisplay = ({ itinerary, content, isStreaming }) => {
           {itinerary.dates}
         </p>
       </div>
+
+      {/* Google Services: Maps Integration */}
+      {import.meta.env.VITE_GOOGLE_MAPS_KEY && !isStreaming && (
+        <div className="itinerary-map animate-fade-in">
+          <iframe
+            title={`Map showing ${itinerary.destination}`}
+            width="100%"
+            height="300"
+            style={{ border: 0, borderRadius: '12px' }}
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+            src={mapUrl}
+          ></iframe>
+        </div>
+      )}
       
       <div className="itinerary-content" role="region" aria-label="Itinerary Details">
         <ReactMarkdown>{content}</ReactMarkdown>
@@ -41,7 +60,7 @@ ItineraryDisplay.propTypes = {
     dates: PropTypes.string,
   }),
   content: PropTypes.string,
-  isStreaming: PropTypes.boolean,
+  isStreaming: PropTypes.bool,
 };
 
 export default ItineraryDisplay;
