@@ -11,6 +11,10 @@ const destinations = [
   { id: 3, name: 'Swiss Alps', image: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=800&auto=format&fit=crop', desc: 'Breathtaking mountains and crystal lakes.' }
 ];
 
+/**
+ * Main Application Component
+ * Handles WebSocket connections and state for itinerary generation.
+ */
 function App() {
   const [socket, setSocket] = useState(null);
   const [itinerary, setItinerary] = useState(null);
@@ -19,7 +23,6 @@ function App() {
   const [streamContent, setStreamContent] = useState('');
 
   useEffect(() => {
-    // If we're not in production, point to the dev server, otherwise use relative path
     const socketUrl = import.meta.env.DEV ? 'http://localhost:8080' : '';
     const newSocket = io(socketUrl);
 
@@ -30,8 +33,8 @@ function App() {
       setStatus('');
     });
     newSocket.on('error', (err) => {
-      console.error(err);
-      setStatus('Error: ' + err.message);
+      console.error('Socket Error:', err);
+      setStatus(`Error: ${err.message}`);
       setLoading(false);
     });
 
@@ -42,7 +45,13 @@ function App() {
     };
   }, []);
 
+  /**
+   * Triggers a new itinerary search
+   * @param {Object} searchData - The destination and dates
+   */
   const handleSearch = (searchData) => {
+    if (!searchData.destination) return;
+    
     setLoading(true);
     setItinerary({ destination: searchData.destination, dates: searchData.dates });
     setStreamContent('');
@@ -58,17 +67,18 @@ function App() {
 
   return (
     <div className="app-container">
-      <header className="app-header glass">
-        <div className="logo text-gradient">Wanderlust</div>
-        <nav className="nav-links">
+      <header className="app-header glass" role="banner">
+        <div className="logo text-gradient" aria-label="Wanderlust Home">Wanderlust</div>
+        <nav className="nav-links" role="navigation">
+          {/* Nav links removed for simplification per user request */}
         </nav>
       </header>
 
-      <main>
+      <main role="main">
         <HeroSearch onSearch={handleSearch} />
 
         {(loading || streamContent) && (
-          <section className="itinerary-section animate-fade-in" aria-live="polite">
+          <section className="itinerary-section animate-fade-in" aria-live="polite" aria-busy={loading}>
             {status && (
               <div className="streaming-status">
                 <div className="spinner small" aria-hidden="true"></div>
@@ -88,14 +98,18 @@ function App() {
             <h2 className="section-title">Trending <span className="text-gradient">Destinations</span></h2>
             <div className="destinations-grid">
               {destinations.map(dest => (
-                <DestinationCard key={dest.id} destination={dest} onClick={() => handleSearch({ destination: dest.name })} />
+                <DestinationCard 
+                  key={dest.id} 
+                  destination={dest} 
+                  onClick={() => handleSearch({ destination: dest.name })} 
+                />
               ))}
             </div>
           </section>
         )}
       </main>
 
-      <footer className="app-footer">
+      <footer className="app-footer" role="contentinfo">
         <p>&copy; {new Date().getFullYear()} Wanderlust Experience Engine. All rights reserved.</p>
       </footer>
     </div>

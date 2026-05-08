@@ -1,30 +1,54 @@
+import PropTypes from 'prop-types';
 import './DestinationCard.css';
 
+/**
+ * Destination Card Component
+ * Displays a trending destination with an image and description.
+ * 
+ * @param {Object} props - Component props
+ * @param {Object} props.destination - The destination data
+ * @param {Function} props.onClick - Click handler for the card
+ */
 const DestinationCard = ({ destination, onClick }) => {
   return (
-    <div className="destination-card glass" onClick={onClick}>
-      <div className="card-image-wrapper">
-        <img src={destination.image} alt={destination.name} className="card-image" />
-        <div className="card-overlay"></div>
-      </div>
-      <div className="card-content">
-        <h3 className="card-title">{destination.name}</h3>
-        <p className="card-desc">{destination.desc}</p>
-        <div className="card-footer">
-          <span className="card-action text-gradient">Explore</span>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="url(#paint0_linear)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <defs>
-              <linearGradient id="paint0_linear" x1="5" y1="12" x2="19" y2="12" gradientUnits="userSpaceOnUse">
-                <stop stopColor="var(--color-gradient-start)"/>
-                <stop offset="1" stopColor="var(--color-gradient-end)"/>
-              </linearGradient>
-            </defs>
-          </svg>
+    <div 
+      className="dest-card glass" 
+      onClick={onClick}
+      role="button"
+      tabIndex="0"
+      aria-label={`Explore ${destination.name}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onClick();
+        }
+      }}
+    >
+      <div className="dest-image-wrapper">
+        <img 
+          src={destination.image} 
+          alt={`A beautiful view of ${destination.name}`} 
+          className="dest-image" 
+          loading="lazy"
+        />
+        <div className="dest-overlay">
+          <span className="dest-badge">Trending</span>
         </div>
+      </div>
+      <div className="dest-info">
+        <h3 className="dest-name">{destination.name}</h3>
+        <p className="dest-desc">{destination.desc}</p>
       </div>
     </div>
   );
+};
+
+DestinationCard.propTypes = {
+  destination: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    image: PropTypes.string.isRequired,
+    desc: PropTypes.string.isRequired,
+  }).isRequired,
+  onClick: PropTypes.func.isRequired,
 };
 
 export default DestinationCard;

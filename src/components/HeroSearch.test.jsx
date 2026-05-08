@@ -13,8 +13,8 @@ describe('HeroSearch', () => {
     const handleSearch = vi.fn();
     render(<HeroSearch onSearch={handleSearch} />);
     
-    const destinationInput = screen.getByLabelText('Destination');
-    const datesInput = screen.getByLabelText('Dates');
+    const destinationInput = screen.getByLabelText(/Enter your destination/i);
+    const datesInput = screen.getByLabelText(/Enter travel dates/i);
     const exploreButton = screen.getByText('Explore');
 
     fireEvent.change(destinationInput, { target: { value: 'Paris' } });

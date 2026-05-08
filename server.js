@@ -1,7 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
@@ -9,81 +9,134 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import createDOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Initialize DOMPurify for input sanitization
+const window = new JSDOM('').window;
+const DOMPurify = createDOMPurify(window);
+
 const app = express();
 const httpServer = createServer(app);
 
-// 1. Security & Efficiency Middleware
+// 1. Enhanced Security Middleware
 app.use(helmet({
-  contentSecurityPolicy: false, // Disabled for simplicity in local dev/demo
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://images.unsplash.com"],
+      connectSrc: ["'self'", "https://generativelanguage.googleapis.com", "ws:", "wss:"],
+    },
+  },
 }));
+
 app.use(compression());
 
-// Rate Limiter: Max 50 requests per 15 minutes
+// Rate Limiter: Prevent API abuse
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 50,
-  message: "Too many requests from this IP, please try again later."
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: "Too many requests, please try again later." }
 });
 app.use(limiter);
 
-// 2. CORS Setup
+// 2. CORS Strategy
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL || '*' : '*',
-  methods: ['GET', 'POST']
+  methods: ['GET', 'POST'],
+  credentials: true
 };
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// 3. Google Gemini AI Configuration
+const ai = new GoogleGenAI(process.env.GEMINI_API_KEY);
+
+const generationConfig = {
+  temperature: 0.7,
+  topP: 0.95,
+  topK: 40,
+  maxOutputTokens: 2048,
+};
+
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+  },
+];
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'dist')));
+
 const io = new Server(httpServer, {
   cors: corsOptions
 });
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-// Serve static files in production
-app.use(express.static(path.join(__dirname, 'dist')));
 
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   socket.on('search_itinerary', async (data) => {
     try {
-      const { destination, dates } = data;
+      // Input Sanitization
+      const destination = DOMPurify.sanitize(data.destination || '');
+      const dates = DOMPurify.sanitize(data.dates || '');
       
+      if (!destination) {
+        return socket.emit('error', { message: 'Destination is required.' });
+      }
+
       socket.emit('status', 'Connecting to Gemini AI...');
       
-      // Google Services: Added explicit safety settings instructions to the prompt
-      const prompt = `You are an expert, professional travel planner. Create a highly detailed travel itinerary for ${destination} for the dates: ${dates}. Format the output in Markdown. Include daily schedules, top attractions, local food recommendations, and travel tips. Keep all content strictly family-friendly and safe for work.`;
+      const prompt = `You are a professional travel planner. Create a detailed travel itinerary for ${destination} for the dates: ${dates}. Format in Markdown. Include daily schedules, food, and tips. Focus on safety and premium experiences.`;
       
       socket.emit('status', `Analyzing destination: ${destination}...`);
       
       if (!process.env.GEMINI_API_KEY) {
-        throw new Error('Gemini API key is not configured.');
+        throw new Error('Gemini API key is missing.');
       }
 
-      const responseStream = await ai.models.generateContentStream({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
+      const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+      const responseStream = await model.generateContentStream({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig,
+        safetySettings,
       });
 
       socket.emit('status', 'Curating activities...');
       
-      for await (const chunk of responseStream) {
-        socket.emit('chunk', chunk.text);
+      for await (const chunk of responseStream.stream) {
+        const chunkText = chunk.text();
+        socket.emit('chunk', chunkText);
       }
 
       socket.emit('status', 'Finalizing itinerary...');
       socket.emit('itinerary_ready', { complete: true });
 
     } catch (error) {
-      console.error('Error generating itinerary:', error);
-      socket.emit('error', { message: error.message || 'Failed to generate itinerary.' });
+      console.error('Gemini Error:', error);
+      socket.emit('error', { message: 'Failed to generate itinerary. Please check your AI quota.' });
     }
   });
 
@@ -92,20 +145,12 @@ io.on('connection', (socket) => {
   });
 });
 
-// For any other requests, send back index.html
+// Catch-all route
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
-});
-
 const PORT = process.env.PORT || 8080;
 httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode`);
-  console.log(`Listening on port ${PORT}`);
-  console.log(`Serving static files from: ${path.join(__dirname, 'dist')}`);
+  console.log(`Server listening on port ${PORT} (NODE_ENV: ${process.env.NODE_ENV})`);
 });
