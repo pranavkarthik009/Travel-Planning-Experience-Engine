@@ -61,8 +61,6 @@ function App() {
       <header className="app-header glass">
         <div className="logo text-gradient">Wanderlust</div>
         <nav className="nav-links">
-          <a href="#">Destinations</a>
-          <a href="#">My Trips</a>
         </nav>
       </header>
 

@@ -18,12 +18,7 @@ const ItineraryDisplay = ({ itinerary, content, isStreaming }) => {
         {isStreaming && <span className="cursor-blink"></span>}
       </div>
       
-      {!isStreaming && content && (
-        <div className="itinerary-actions animate-fade-in">
-          <button className="btn-primary">Book Experience</button>
-          <button className="btn-secondary">Save for Later</button>
-        </div>
-      )}
+
     </div>
   );
 };
