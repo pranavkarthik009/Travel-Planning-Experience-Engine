@@ -1,25 +1,28 @@
-# Stage 1: Build the React Application
-FROM node:22-alpine as build
+# Use a stable, high-compatibility base image
+FROM node:20-slim
+
 WORKDIR /app
+
+# Copy dependency files
 COPY package*.json ./
+
+# Install ALL dependencies (needed for build)
 RUN npm install
+
+# Copy all source files
 COPY . .
+
+# Build the React frontend
 RUN npm run build
 
-# Stage 2: Serve the application with Node.js
-FROM node:22-alpine
-WORKDIR /app
-# Copy the built app
-COPY --from=build /app/dist ./dist
-# Copy backend files
-COPY package*.json ./
-COPY server.js ./
-# Install production dependencies
-RUN npm install --omit=dev
+# Remove development dependencies to keep the image slim
+RUN npm prune --omit=dev
 
-# Efficiency: Set NODE_ENV to production for framework optimizations
+# Efficiency: Set NODE_ENV to production
 ENV NODE_ENV=production
 
-# Cloud Run expects the container to listen on PORT 8080 by default
+# Cloud Run defaults
 EXPOSE 8080
+
+# Start the server
 CMD ["npm", "start"]
