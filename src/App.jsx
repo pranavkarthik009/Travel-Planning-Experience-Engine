@@ -4,7 +4,6 @@ import './App.css';
 import HeroSearch from './components/HeroSearch';
 import DestinationCard from './components/DestinationCard';
 import ItineraryDisplay from './components/ItineraryDisplay';
-import AuthModal from './components/AuthModal';
 
 const destinations = [
   { id: 1, name: 'Kyoto, Japan', image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop', desc: 'Ancient temples and modern culture.' },
@@ -13,36 +12,16 @@ const destinations = [
 ];
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  
   const [socket, setSocket] = useState(null);
   const [itinerary, setItinerary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [streamContent, setStreamContent] = useState('');
 
-  // Check for saved user on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    
-    if (savedUser && token) {
-      setUser(JSON.parse(savedUser));
-      initSocket(token);
-    }
-
-    return () => {
-      if (socket) socket.disconnect();
-    };
-  }, []);
-
-  const initSocket = (token) => {
     // If we're not in production, point to the dev server, otherwise use relative path
     const socketUrl = import.meta.env.DEV ? 'http://localhost:8080' : '';
-    const newSocket = io(socketUrl, {
-      auth: { token }
-    });
+    const newSocket = io(socketUrl);
 
     newSocket.on('status', (msg) => setStatus(msg));
     newSocket.on('chunk', (text) => setStreamContent(prev => prev + text));
@@ -57,39 +36,22 @@ function App() {
     });
 
     setSocket(newSocket);
-  };
 
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
-    const token = localStorage.getItem('token');
-    initSocket(token);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    if (socket) {
-      socket.disconnect();
-      setSocket(null);
-    }
-  };
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
 
   const handleSearch = (searchData) => {
-    if (!user) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-
     setLoading(true);
     setItinerary({ destination: searchData.destination, dates: searchData.dates });
     setStreamContent('');
-    setStatus('Initializing connection...');
+    setStatus('Initializing AI Engine...');
 
     if (socket) {
       socket.emit('search_itinerary', searchData);
     } else {
-      setStatus('Socket connection not found. Please log in again.');
+      setStatus('Connecting to server...');
       setLoading(false);
     }
   };
@@ -100,17 +62,7 @@ function App() {
         <div className="logo text-gradient">Wanderlust</div>
         <nav className="nav-links">
           <a href="#">Destinations</a>
-          {user ? (
-            <>
-              <a href="#">My Trips</a>
-              <div className="user-profile">
-                <span>{user.email.split('@')[0]}</span>
-                <button onClick={handleLogout} className="logout-btn">Log Out</button>
-              </div>
-            </>
-          ) : (
-            <button onClick={() => setIsAuthModalOpen(true)} className="nav-btn">Sign In</button>
-          )}
+          <a href="#">My Trips</a>
         </nav>
       </header>
 
@@ -148,12 +100,6 @@ function App() {
       <footer className="app-footer">
         <p>&copy; {new Date().getFullYear()} Wanderlust Experience Engine. All rights reserved.</p>
       </footer>
-
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-        onLoginSuccess={handleLoginSuccess} 
-      />
     </div>
   );
 }

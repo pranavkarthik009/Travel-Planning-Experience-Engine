@@ -14,12 +14,8 @@ COPY --from=build /app/dist ./dist
 # Copy backend files
 COPY package*.json ./
 COPY server.js ./
-COPY server/ ./server/
-COPY prisma/ ./prisma/
 # Install production dependencies
 RUN npm ci --omit=dev
-# Generate Prisma Client
-RUN npx prisma generate
 
 # Cloud Run expects the container to listen on PORT 8080 by default
 EXPOSE 8080

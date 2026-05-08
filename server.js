@@ -2,13 +2,10 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { GoogleGenAI } from '@google/genai';
-import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRouter from './server/auth.js';
-import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -24,34 +21,16 @@ const io = new Server(httpServer, {
   }
 });
 
-const prisma = new PrismaClient();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-do-not-use';
 
 app.use(cors());
 app.use(express.json());
 
-// Auth routes
-app.use('/api/auth', authRouter);
-
 // Serve static files in production
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// WebSocket connections
-io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  if (!token) {
-    return next(new Error('Authentication error'));
-  }
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return next(new Error('Authentication error'));
-    socket.userId = decoded.userId;
-    next();
-  });
-});
-
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.userId}`);
+  console.log(`Client connected: ${socket.id}`);
 
   socket.on('search_itinerary', async (data) => {
     try {
@@ -74,24 +53,11 @@ io.on('connection', (socket) => {
 
       socket.emit('status', 'Curating activities...');
       
-      let fullContent = '';
       for await (const chunk of responseStream) {
-        fullContent += chunk.text;
         socket.emit('chunk', chunk.text);
       }
 
-      socket.emit('status', 'Saving itinerary...');
-
-      // Save to database
-      await prisma.itinerary.create({
-        data: {
-          userId: socket.userId,
-          destination,
-          dates,
-          content: fullContent
-        }
-      });
-
+      socket.emit('status', 'Finalizing itinerary...');
       socket.emit('itinerary_ready', { complete: true });
 
     } catch (error) {
@@ -101,7 +67,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.userId}`);
+    console.log(`Client disconnected: ${socket.id}`);
   });
 });
 
