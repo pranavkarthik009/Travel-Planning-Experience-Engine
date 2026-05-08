@@ -26,11 +26,31 @@
 .nav-links {
   display: flex;
   gap: 2rem;
+  align-items: center;
 }
 
 .nav-links a {
   font-weight: 500;
   font-size: 0.95rem;
+}
+
+.nav-btn, .logout-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.nav-btn:hover, .logout-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 main {
@@ -58,12 +78,19 @@ main {
   gap: 2rem;
 }
 
-.loading-container {
+.streaming-status {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 5rem 2rem;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: var(--glass-bg);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--glass-border);
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .spinner {
@@ -73,7 +100,12 @@ main {
   border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+}
+
+.spinner.small {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
 }
 
 @keyframes spin {

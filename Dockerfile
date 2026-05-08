@@ -6,15 +6,21 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve the application with Nginx
-FROM nginx:alpine
-# Copy the built app to nginx's web root
-COPY --from=build /app/dist /usr/share/nginx/html
-# Remove default nginx static assets
-RUN rm /etc/nginx/conf.d/default.conf
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d
+# Stage 2: Serve the application with Node.js
+FROM node:22-alpine
+WORKDIR /app
+# Copy the built app
+COPY --from=build /app/dist ./dist
+# Copy backend files
+COPY package*.json ./
+COPY server.js ./
+COPY server/ ./server/
+COPY prisma/ ./prisma/
+# Install production dependencies
+RUN npm ci --omit=dev
+# Generate Prisma Client
+RUN npx prisma generate
 
 # Cloud Run expects the container to listen on PORT 8080 by default
 EXPOSE 8080
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["npm", "start"]
