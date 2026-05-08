@@ -70,10 +70,10 @@ function App() {
         <HeroSearch onSearch={handleSearch} />
 
         {(loading || streamContent) && (
-          <section className="itinerary-section animate-fade-in">
+          <section className="itinerary-section animate-fade-in" aria-live="polite">
             {status && (
               <div className="streaming-status">
-                <div className="spinner small"></div>
+                <div className="spinner small" aria-hidden="true"></div>
                 <p className="text-gradient">{status}</p>
               </div>
             )}

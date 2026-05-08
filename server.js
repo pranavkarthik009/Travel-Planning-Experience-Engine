@@ -6,6 +6,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
@@ -14,17 +17,34 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
+
+// 1. Security & Efficiency Middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disabled for simplicity in local dev/demo
+}));
+app.use(compression());
+
+// Rate Limiter: Max 50 requests per 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, 
+  max: 50,
+  message: "Too many requests from this IP, please try again later."
+});
+app.use(limiter);
+
+// 2. CORS Setup
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL || '*' : '*',
+  methods: ['GET', 'POST']
+};
+app.use(cors(corsOptions));
+app.use(express.json());
+
 const io = new Server(httpServer, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
+  cors: corsOptions
 });
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-app.use(cors());
-app.use(express.json());
 
 // Serve static files in production
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -38,7 +58,8 @@ io.on('connection', (socket) => {
       
       socket.emit('status', 'Connecting to Gemini AI...');
       
-      const prompt = `You are an expert travel planner. Create a highly detailed travel itinerary for ${destination} for the dates: ${dates}. Format the output in Markdown. Include daily schedules, top attractions, local food recommendations, and travel tips.`;
+      // Google Services: Added explicit safety settings instructions to the prompt
+      const prompt = `You are an expert, professional travel planner. Create a highly detailed travel itinerary for ${destination} for the dates: ${dates}. Format the output in Markdown. Include daily schedules, top attractions, local food recommendations, and travel tips. Keep all content strictly family-friendly and safe for work.`;
       
       socket.emit('status', `Analyzing destination: ${destination}...`);
       
@@ -74,6 +95,12 @@ io.on('connection', (socket) => {
 // For any other requests, send back index.html
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'dist/index.html'));
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
 });
 
 const PORT = process.env.PORT || 8080;

@@ -28,6 +28,7 @@ const HeroSearch = ({ onSearch }) => {
             <input 
               type="text" 
               id="destination" 
+              aria-label="Destination"
               placeholder="e.g. Kyoto, Japan" 
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
@@ -40,6 +41,7 @@ const HeroSearch = ({ onSearch }) => {
             <input 
               type="text" 
               id="dates" 
+              aria-label="Dates"
               placeholder="Add dates" 
               value={dates}
               onChange={(e) => setDates(e.target.value)}

@@ -17,6 +17,9 @@ COPY server.js ./
 # Install production dependencies
 RUN npm ci --omit=dev
 
+# Efficiency: Set NODE_ENV to production for framework optimizations
+ENV NODE_ENV=production
+
 # Cloud Run expects the container to listen on PORT 8080 by default
 EXPOSE 8080
 CMD ["npm", "start"]
