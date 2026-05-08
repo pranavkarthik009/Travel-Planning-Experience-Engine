@@ -2,7 +2,7 @@
 FROM node:22-alpine as build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 
@@ -15,7 +15,7 @@ COPY --from=build /app/dist ./dist
 COPY package*.json ./
 COPY server.js ./
 # Install production dependencies
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 # Efficiency: Set NODE_ENV to production for framework optimizations
 ENV NODE_ENV=production

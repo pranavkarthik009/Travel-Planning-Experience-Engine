@@ -104,6 +104,8 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 8080;
-httpServer.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode`);
+  console.log(`Listening on port ${PORT}`);
+  console.log(`Serving static files from: ${path.join(__dirname, 'dist')}`);
 });
