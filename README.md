@@ -1,16 +1,54 @@
-# React + Vite
+# Wanderlust: AI-Powered Travel Planning Experience Engine
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A production-grade, real-time travel itinerary generator built with **React (Vite)**, **Node.js**, **Socket.io**, and **Google Gemini AI**.
 
-Currently, two official plugins are available:
+## 🚀 Key Features
+- **Real-Time AI Streaming**: Watch your itinerary being built live on your screen, powered by Google Gemini 1.5 Flash.
+- **Premium Design System**: A high-fidelity, responsive UI featuring glassmorphism, smooth animations, and tailored color palettes.
+- **Production Grade Security**: Implements `helmet` for secure headers, `express-rate-limit` to prevent abuse, and strict CORS policies.
+- **Optimized for Efficiency**: Gzip compression and a lean Docker setup ensure lightning-fast performance.
+- **Accessible & Tested**: ARIA-compliant UI with unit tests for core search functionality.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🛠️ Technology Stack
+- **Frontend**: React 18, Vite, CSS (Glassmorphism), Socket.io-client.
+- **Backend**: Node.js, Express, Socket.io, Google GenAI SDK.
+- **Deployment**: Optimized Dockerfile for Google Cloud Run.
+- **Testing**: Vitest, React Testing Library.
 
-## React Compiler
+## 📦 Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Local Development
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/pranavkarthik009/Travel-Planning-Experience-Engine.git
+   cd Travel-Planning-Experience-Engine
+   ```
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+3. **Configure Environment**:
+   Create a `.env` file in the root directory:
+   ```env
+   GEMINI_API_KEY=your_google_ai_studio_key
+   PORT=8080
+   ```
+4. **Run the application**:
+   - Start the backend: `npm start`
+   - Start the frontend (in a new terminal): `npm run dev`
+5. **Open your browser**: Navigate to `http://localhost:5173`.
 
-## Expanding the ESLint configuration
+### 🧪 Running Tests
+```bash
+npm run test
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## ☁️ Deployment (Google Cloud Run)
+This project is pre-configured for **Google Cloud Run**.
+
+1. **Continuous Deployment**: Link this repository to your Google Cloud Run service via GitHub.
+2. **Secrets**: Add your `GEMINI_API_KEY` to the Environment Variables in the Cloud Run service console.
+3. **Port**: The application listens on port `8080` by default, which Cloud Run detects automatically.
+
+---
+Built with ❤️ for the ultimate travel experience.
